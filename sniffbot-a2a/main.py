@@ -205,6 +205,7 @@ async def a2a_endpoint(request: Request):
             messages = [params.message]
             config = params.configuration
             context_id = getattr(params.message, "contextId", None) or str(uuid.uuid4())
+            task_id = str(uuid.uuid4())  # Define task_id for message/send
         elif method == "execute":
             params = ExecuteParams(**body["params"])
             messages = params.messages
