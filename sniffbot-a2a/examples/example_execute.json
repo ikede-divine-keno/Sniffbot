@@ -1,0 +1,23 @@
+{
+  "jsonrpc": "2.0",
+  "id": "exec-sniff-01",
+  "method": "execute",
+  "params": {
+    "contextId": "sniff-conversation-7a3f9c2e",
+    "taskId": "sniff-task-5b1d8e4a",
+    "messages": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "kind": "text",
+            "text": "@sniffbot sniff this\n```python\ndef add(a, b):\n    return a + b\n```"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "blocking": false
+    }
+  }
+}

@@ -1,0 +1,121 @@
+[
+  {
+    "title": "Hard-coded Secrets",
+    "lang": "python",
+    "bad": "API_KEY = \"sk-1234567890abcdef\"\n\ndef get_user():\n    return requests.get(\"https://api.example.com\", headers={\"Authorization\": API_KEY})\n",
+    "good": "import os\n\nAPI_KEY = os.getenv(\"API_KEY\")\n\ndef get_user():\n    return requests.get(\"https://api.example.com\", headers={\"Authorization\": API_KEY})\n",
+    "explanation": "Never commit secrets. Use environment variables – they stay out of version control and can be rotated without code changes.",
+    "commit_message": "refactor: move API key to environment variable",
+    "tag": "security"
+  },
+
+  {
+    "title": "String Concatenation in Loops",
+    "lang": "python",
+    "bad": "result = \"\"\nfor item in large_list:\n    result += str(item) + \", \"\n",
+    "good": "result = \", \".join(str(item) for item in large_list)\n",
+    "explanation": "Repeated `+=` on strings creates a new object each iteration (O(n²)). `join()` is O(n) and far more readable.",
+    "commit_message": "perf: replace string concatenation with join()",
+    "tag": "performance"
+  },
+
+  {
+    "title": "Callback Hell (Pyramid of Doom)",
+    "lang": "javascript",
+    "bad": "getUser(id, (err, user) => {\n  if (err) return;\n  getPosts(user.id, (err, posts) => {\n    if (err) return;\n    render(posts);\n  });\n});\n",
+    "good": "async function showPosts(id) {\n  const user = await getUser(id);\n  const posts = await getPosts(user.id);\n  render(posts);\n}\nshowPosts(42);\n",
+    "explanation": "Nested callbacks are hard to read and error-prone. `async/await` linearises the flow while preserving async semantics.",
+    "commit_message": "refactor: convert callback pyramid to async/await",
+    "tag": "readability"
+  },
+
+  {
+    "title": "Magic Numbers",
+    "lang": "java",
+    "bad": "if (status == 42) { /* special case */ }\n",
+    "good": "private static final int SPECIAL_STATUS = 42;\nif (status == SPECIAL_STATUS) { /* special case */ }\n",
+    "explanation": "Unnamed literals make code cryptic. A named constant documents intent and enables safe refactoring.",
+    "commit_message": "refactor: replace magic number 42 with SPECIAL_STATUS constant",
+    "tag": "maintainability"
+  },
+
+  {
+    "title": "SQL Injection via String Concatenation",
+    "lang": "sql",
+    "bad": "query = \"SELECT * FROM users WHERE name = '\" + user_input + \"'\"\n",
+    "good": "stmt = connection.prepareStatement(\"SELECT * FROM users WHERE name = ?\");\nstmt.setString(1, user_input);\n",
+    "explanation": "String concatenation opens the door to injection. Parameterised queries are safe and usually faster.",
+    "commit_message": "fix: use prepared statement to prevent SQL injection",
+    "tag": "security"
+  },
+
+  {
+    "title": "Unnecessary `else` after `return`",
+    "lang": "go",
+    "bad": "if err != nil {\n    return err\n} else {\n    return doWork()\n}\n",
+    "good": "if err != nil {\n    return err\n}\nreturn doWork()\n",
+    "explanation": "The `else` is dead code once `return` exits the function. Removing it reduces nesting and cognitive load.",
+    "commit_message": "style: remove redundant else after early return",
+    "tag": "style"
+  },
+
+  {
+    "title": "Mutable Default Arguments",
+    "lang": "python",
+    "bad": "def add_item(item, lst=[]):\n    lst.append(item)\n    return lst\n",
+    "good": "def add_item(item, lst=None):\n    if lst is None:\n        lst = []\n    lst.append(item)\n    return lst\n",
+    "explanation": "Default mutable objects are created once at function definition and shared across calls – a classic gotcha.",
+    "commit_message": "fix: avoid mutable default argument",
+    "tag": "correctness"
+  },
+
+  {
+    "title": "Hard-coded Paths",
+    "lang": "bash",
+    "bad": "cp /home/user/project/file.txt /tmp/backup/\n",
+    "good": "PROJECT_ROOT=\"/home/user/project\"\nBACKUP_DIR=\"/tmp/backup\"\ncp \"${PROJECT_ROOT}/file.txt\" \"${BACKUP_DIR}/\"\n",
+    "explanation": "Hard-coded paths break when the environment changes. Variables make scripts portable and configurable.",
+    "commit_message": "refactor: replace hard-coded paths with variables",
+    "tag": "portability"
+  },
+
+  {
+    "title": "Using `var` Everywhere",
+    "lang": "javascript",
+    "bad": "var x = 10;\nvar y = \"hello\";\nvar z = true;\n",
+    "good": "let x = 10;\nconst y = \"hello\";\nlet z = true;\n",
+    "explanation": "`var` has function scope and hoisting issues. `let`/`const` give block scope and clearer intent.",
+    "commit_message": "refactor: replace var with let/const",
+    "tag": "modern-js"
+  },
+
+  {
+    "title": "Deeply Nested Conditionals",
+    "lang": "python",
+    "bad": "if user:\n    if user.is_active:\n        if user.has_permission('admin'):\n            do_admin()\n",
+    "good": "if not (user and user.is_active and user.has_permission('admin')):\n    return\n do_admin()\n",
+    "explanation": "Guard clauses (early returns) flatten the code path, making the happy path obvious and reducing indentation.",
+    "commit_message": "refactor: flatten nested ifs with guard clauses",
+    "tag": "readability"
+  },
+
+  {
+    "title": "Ignoring Errors",
+    "lang": "go",
+    "bad": "data, _ := ioutil.ReadFile(path)\n",
+    "good": "data, err := ioutil.ReadFile(path)\nif err != nil {\n    log.Fatalf(\"read file: %v\", err)\n}\n",
+    "explanation": "Discarding errors hides failures. Always check and handle (or propagate) them.",
+    "commit_message": "fix: handle file-read error properly",
+    "tag": "reliability"
+  },
+
+  {
+    "title": "Duplicate Code in Switch/If-Else",
+    "lang": "typescript",
+    "bad": "if (type === 'a') { log('a'); doA(); }\nelse if (type === 'b') { log('b'); doB(); }\nelse if (type === 'c') { log('c'); doC(); }\n",
+    "good": "const actions: Record<string, () => void> = {\n  a: () => { log('a'); doA(); },\n  b: () => { log('b'); doB(); },\n  c: () => { log('c'); doC(); }\n};\nconst act = actions[type];\nif (act) act();\n",
+    "explanation": "A lookup table eliminates repetition, centralises logic, and makes adding new cases trivial.",
+    "commit_message": "refactor: replace duplicated if-else with action map",
+    "tag": "maintainability"
+  }
+]

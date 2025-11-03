@@ -1,0 +1,19 @@
+{
+  "jsonrpc": "2.0",
+  "id": "demo-1",
+  "method": "message/send",
+  "params": {
+    "message": {
+      "role": "user",
+      "parts": [
+        {
+          "kind": "text",
+          "text": "@sniffbot sniff this\n```python\ndef hello():\n    print(\"world\")\n```"
+        }
+      ]
+    },
+    "configuration": {
+      "blocking": false
+    }
+  }
+}
