@@ -316,13 +316,11 @@ Respond **only** in valid JSON:
 
         # === 5. FOLLOW-UP CHECK ===
         if len(messages) > 1:
-            recent_memory = _CONVERSATION_MEMORY.get(context_id, [])[-5:]
-            logger.debug(f"Checking memory: {[msg.model_dump() for msg in recent_memory]}")
-            for msg in recent_memory:
+            for msg in reversed(messages[:-1]):  # Skip the latest message
                 if msg.role == "agent":
                     text = " ".join(p.text or "" for p in msg.parts if p.kind == "text")
                     if "SniffBot Code Review" in text or "SniffBot Code Re-Review" in text:
-                        logger.debug(f"Follow-up detected in memory, returning: You're welcome! Got more code to sniff?")
+                        logger.debug(f"Follow-up detected in messages, returning: You're welcome! Got more code to sniff?")
                         return self._build_fallback_result(
                             "You're welcome! Got more code to sniff?",
                             task_id, context_id, messages

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from dotenv import load_dotenv
 
 from models.a2a import (
@@ -118,39 +119,39 @@ for name in ["example_request", "example_execute"]:
 # /a2a/sniff – the only public A2A endpoint
 # ----------------------------------------------------------------------
 @app.post("/a2a/sniff",
-            summary="A2A JSON-RPC Endpoint",
-            description="Accepts JSON-RPC 2.0 requests (message/send, execute)",
-            responses={
-                200: {
-                    "description": "JSON-RPC success response",
-                    "content": {
-                        "application/json": {
-                            "examples": {
-                                "message/send": {
-                                    "summary": "Code review request",
-                                    "value": EXAMPLES.get("example_request")
-                                },
-                                "execute": {
-                                    "summary": "Resume task",
-                                    "value": EXAMPLES.get("example_execute")
-                                }
-                            }
-                        }
-                    }
-                },
-                400: {
-                    "description": "JSON-RPC error",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "jsonrpc": "2.0",
-                                "id": "1",
-                                "error": {"code": -32600, "message": "Invalid Request"}
-                            }
-                        }
-                    }
-                }
-            }
+         summary="A2A JSON-RPC Endpoint",
+         description="Accepts JSON-RPC 2.0 requests (message/send, execute)",
+         responses={
+             200: {
+                 "description": "JSON-RPC success response",
+                 "content": {
+                     "application/json": {
+                         "examples": {
+                             "message/send": {
+                                 "summary": "Code review request",
+                                 "value": EXAMPLES.get("example_request")
+                             },
+                             "execute": {
+                                 "summary": "Resume task",
+                                 "value": EXAMPLES.get("example_execute")
+                             }
+                         }
+                     }
+                 }
+             },
+             400: {
+                 "description": "JSON-RPC error",
+                 "content": {
+                     "application/json": {
+                         "example": {
+                             "jsonrpc": "2.0",
+                             "id": "1",
+                             "error": {"code": -32600, "message": "Invalid Request"}
+                         }
+                     }
+                 }
+             }
+         }
 )
 async def a2a_endpoint(request: Request):
     # ---- 1. Parse raw JSON (catch malformed body) --------------------
@@ -165,13 +166,13 @@ async def a2a_endpoint(request: Request):
         return jsonrpc_error(body.get("id"), -32600, "Invalid Request")
 
     req_id = body["id"]
-
-    # ----  Check method *before* Pydantic -----------------------
     method = body.get("method")
+
+    # ---- 3. Validate method ------------------------------------------
     if method not in {"message/send", "execute"}:
         return jsonrpc_error(req_id, -32601, "Method not found")
 
-    # ---- 3. Extract Telex identifiers (user > channel > fallback) ----
+    # ---- 4. Extract Telex identifiers (user > channel > fallback) ----
     user_id = request.headers.get("x-telex-user-id")
     channel_id = request.headers.get("x-telex-channel-id", "unknown")
     ip_fallback = request.headers.get("x-forwarded-for", "unknown")
@@ -179,7 +180,7 @@ async def a2a_endpoint(request: Request):
 
     logger.info(f"Incoming request | id={req_id} | user={user_id or 'none'} | channel={channel_id} | identifier={identifier}")
 
-    # ---- 4. Rate Limiting Check (per-user preferred) -----------------
+    # ---- 5. Rate Limiting Check (per-user preferred) -----------------
     rate_result = is_rate_limited(identifier)
     if rate_result:
         logger.warning(f"Rate limited | identifier={identifier} | retry_after={rate_result}s")
@@ -197,37 +198,26 @@ async def a2a_endpoint(request: Request):
             }
         )
 
-    # ---- 5. Parse request with Pydantic (strong typing) -------------
+    # ---- 6. Parse request with Pydantic (strong typing) -------------
     try:
-        rpc_req = JSONRPCRequest(**body)
-    except Exception as exc:
+        if method == "message/send":
+            params = MessageParams(**body["params"])
+            messages = [params.message]
+            config = params.configuration
+            context_id = getattr(params.message, "contextId", None) or str(uuid.uuid4())
+        elif method == "execute":
+            params = ExecuteParams(**body["params"])
+            messages = params.messages
+            context_id = params.contextId or str(uuid.uuid4())
+            task_id = params.taskId or str(uuid.uuid4())
+        else:
+            return jsonrpc_error(req_id, -32601, "Method not found")
+    except ValidationError as exc:
         logger.warning(f"JSON-RPC validation failed: {exc}")
         return jsonrpc_error(req_id, -32602, "Invalid params", {"details": str(exc)})
-
-    # ---- 6. Extract messages & optional config -----------------------
-    messages = []
-    context_id = None  # ← CHANGE: Don't generate here
-    task_id = str(uuid.uuid4())
-    config: MessageConfiguration | None = None
-
-    if rpc_req.method == "message/send":
-        params: MessageParams = rpc_req.params
-        messages = [params.message]
-        config = params.configuration
-        context_id = getattr(params.message, "contextId", None) or str(uuid.uuid4())
-    elif rpc_req.method == "execute":
-        params: ExecuteParams = rpc_req.params
-        messages = params.messages  # ← FULL HISTORY
-        context_id = params.contextId
-        task_id = params.taskId or task_id
-    else:
-        return jsonrpc_error(req_id, -32601, "Method not found")
-
-    # Final fallback: generate if still None
-    context_id = context_id or str(uuid.uuid4())
-
-    if config:
-        logger.debug(f"Config received: blocking={config.blocking}")
+    except Exception as exc:
+        logger.warning(f"Unexpected error during params parsing: {exc}")
+        return jsonrpc_error(req_id, -32602, "Invalid params", {"details": str(exc)})
 
     # ---- 7. Delegate to agent (all heavy lifting) -------------------
     try:
