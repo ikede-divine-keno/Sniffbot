@@ -10,7 +10,6 @@ GitHub repo for HNG Internship Stage 1 A2A Code Review Agent
 SniffBot is an AI-powered code review agent built with Python and FastAPI, integrating with the Telex.im platform via the Agent-to-Agent (A2A) protocol. It analyzes code snippets, detects issues (e.g., type errors like `x = 1 + "hello"`), and provides severity ratings, fixed code diffs, and conventional commit messages. Deployed on Railway as part of the HNG Internship, SniffBot offers real-time feedback for developers.
 
 The project uses in-memory storage for conversation history, resetting on server restart. For production persistence, consider integrating Redis or a database.
-```
 
 ## Table of Contents
 
@@ -56,14 +55,15 @@ sniffbot-a2a/
 ├── main.py              # FastAPI server handling A2A requests
 ├── requirements.txt     # Project dependencies
 ├── .env                 # Environment variables (e.g., GROQ_API_KEY)
-├── examples/            # Optional: Example JSON-RPC requests (e.g., example_request.json)
+├── examples/            # Optional: Example JSON-RPC requests (e.g., example_request.json) and smell_of_the_week
+├── scheduler.py         # Schedules weekly smell of the week post to telex ai coworker
 ├── .gitignore           # Git ignore file
 └── README.md            # This file
 ```
 
 - **`models/a2a.py`**: Defines the A2A protocol models with Pydantic for validation.
 - **`utils/`**: Contains helper utilities for code extraction and diff generation.
-- **`tests/`**: Includes unit tests to ensure reliability (e.g., `test_agent.py`, `test_main.py`).
+- **`tests/`**: Includes unit tests to ensure reliability (e.g., `test_a2a.py`).
 - **`agent.py`**: Implements the SniffBot logic, processing messages and generating artifacts.
 - **`main.py`**: Sets up the FastAPI server, handles JSON-RPC requests, and delegates to the agent.
 - **`requirements.txt`**: Lists dependencies for installation.
@@ -287,6 +287,13 @@ Expected response:
   }
 }
 ```
+### Running Unit Tests
+
+To run the unit tests, navigate to `/sniffbot-a2a` directory then run the command below:
+
+```bash
+pytest tests/test_a2a.py -v
+```
 
 ### Telex.im Integration
 
@@ -312,7 +319,7 @@ Use Telex.im to send commands like:
 ```python
 x = 1 + "hello"
 ```
-```
+
 
 SniffBot will respond with a code review in the chat.
 
@@ -333,6 +340,7 @@ SniffBot is deployed directly on Railway without Docker. Follow these steps:
      - `GROQ_API_KEY`: Your Groq API key.
      - `PORT`: `8080`.
      - `RATE_LIMIT_PER_MINUTE`: `10` (optional, defaults to 10).
+     - `TELEX_WEBHOOK_URL`: Your Telex Webhook URL.
 
 4. **Deploy**:
    - Push changes to your GitHub repository:
@@ -368,9 +376,6 @@ Contributions are welcome! To contribute:
 
 Please adhere to the [PEP 8](https://www.python.org/dev/peps/pep-0008/) style guide.
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. *(Create a `LICENSE` file if not present.)*
 
 ## Acknowledgments
 
@@ -379,4 +384,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - **Groq**: For the powerful AI API.
 - **Railway**: For free deployment hosting.
 
----
