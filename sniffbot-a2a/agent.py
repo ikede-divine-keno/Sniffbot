@@ -180,16 +180,14 @@ Respond **only** in valid JSON:
             analysis = await self._analyze_with_retry(code, lang)
             diff = create_diff(code, analysis.get("fixed_code", code))
             logger.debug(f"Generated diff: '{diff}'")
-            severity_emoji = {"Low": "🟢", "Medium": "🟡", "High": "🔴"}.get(analysis["severity"], "🔵")
+            severity_emoji = {"Low": "🟢", "Medium": "🟡", "High": "🔴"}.get(analysis["severity"], "⚪")
             response_text = f"""
 **SniffBot Code Review** {severity_emoji} **{analysis['severity']}**
 
 > {analysis['explanation']}
 
 **Fixed Code (Diff)**
-```diff
 {diff}
-```
 
 **Commit Message**  
 `{analysis['commit_message']}`
@@ -274,9 +272,7 @@ Respond **only** in valid JSON:
 > {analysis['explanation']}
 
 **Fixed Code (Diff)**
-```diff
 {diff}
-```
 
 **Commit Message**  
 `{analysis['commit_message']}`

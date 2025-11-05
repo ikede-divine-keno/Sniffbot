@@ -5,7 +5,6 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
-
 def create_diff(original: str, fixed: str) -> str:
     """
     Generate a unified diff between original and fixed code.
@@ -14,7 +13,7 @@ def create_diff(original: str, fixed: str) -> str:
       - Artifact(name="diff")
 
     A2A Compliance:
-      - Returns plain text string
+      - Returns plain text string wrapped in ```diff
       - Safe with empty/malformed input
       - No external dependencies beyond stdlib
       - Never raises
@@ -30,11 +29,11 @@ def create_diff(original: str, fixed: str) -> str:
     original = original or ""
     fixed = fixed or ""
 
-    # Split into lines and add trailing newline for diff consistency
-    original_lines = original.splitlines(keepends=True)
-    fixed_lines = fixed.splitlines(keepends=True)
+    # Split into lines and ensure consistent newline handling
+    original_lines = original.splitlines(True)  # True preserves line endings
+    fixed_lines = fixed.splitlines(True)
 
-    # Ensure both end with newline (diff standard)
+    # Ensure both end with a newline for diff consistency (if not empty)
     if original_lines and not original_lines[-1].endswith('\n'):
         original_lines[-1] += '\n'
     if fixed_lines and not fixed_lines[-1].endswith('\n'):
@@ -47,16 +46,16 @@ def create_diff(original: str, fixed: str) -> str:
             fixed_lines,
             fromfile="original",
             tofile="fixed",
-            lineterm="",  # We manage newlines manually
+            lineterm="",  # Let diff manage newlines
             n=3  # Context lines
         )
         diff_lines = list(diff)
 
         # If no changes, return empty diff block
-        if not diff_lines:
+        if not diff_lines or all(line.startswith(('---', '+++', '@@')) for line in diff_lines):
             return "```diff\n# No changes detected\n```"
 
-        # Join and wrap in code block
+        # Join diff lines and wrap in a single code block
         diff_text = "".join(diff_lines).rstrip() + "\n"
         return f"```diff\n{diff_text}```"
 
