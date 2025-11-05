@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, timezone
 # CONFIG
 # ----------------------------------------------------------------------
 BASE_URL = "http://localhost:8080"  # Local
-# BASE_URL = "https://sniffbot-a2a.railway.app/a2a/sniff"  # Deployed (adjust URL as needed)
 
 A2A_ENDPOINT = f"{BASE_URL}/a2a/sniff"
 HEALTH_ENDPOINT = f"{BASE_URL}/health"
